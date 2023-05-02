@@ -14,7 +14,7 @@ accounts:
       IAMUserPolicyAttachment:
         - "FULLACCESS -> AdministratorAccess"
       IAMUserAccessKey:
-        - "FULLACCESS -> AKIAZ2AFH552TYCR6IZI"
+        - "FULLACCESS -> AKIAZ2AFH55254CKIEGR"
 
 account-blocklist:
   - "999999999999" # We don't have "production" accounts.
