@@ -13,6 +13,8 @@ accounts:
         - "FULLACCESS"
       IAMUserPolicyAttachment:
         - "FULLACCESS -> AdministratorAccess"
+      IAMUserAccessKey:
+        - "admin -> AKIAZ2AFH552TYCR6IZI"
 
 account-blocklist:
   - "999999999999" # We don't have "production" accounts.
