@@ -19,7 +19,7 @@ jobs:
       - name: Run AWS Nuke
         run: >
           aws-nuke
-          --config ./.github/workflows/aws-nuke-config.yml
+          --config ./.github/workflows/cleanup/aws-nuke-config.yml
           --no-dry-run
           --force
           --force-sleep 3
@@ -44,4 +44,4 @@ jobs:
         run: yarn --immutable
 
       - name: Run Cloudfront Functions Cleanup
-        run: node ./.github/workflows/cleanupCloudfrontFunctions.js
+        run: node ./.github/workflows/cleanup/cleanupCloudfrontFunctions.js
