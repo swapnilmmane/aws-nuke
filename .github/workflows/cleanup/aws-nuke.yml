@@ -1,0 +1,18 @@
+regions:
+  - eu-central-1
+  - us-east-1
+  - us-east-2
+  - us-west-1
+  - us-west-2
+  - global
+
+accounts:
+  "674320871285":
+    filters:
+      IAMUser:
+        - "FULLACCESS"
+      IAMUserPolicyAttachment:
+        - "FULLACCESS -> AdministratorAccess"
+
+account-blocklist:
+  - "999999999999" # We don't have "production" accounts.
