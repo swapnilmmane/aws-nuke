@@ -18,3 +18,7 @@ accounts:
 
 account-blocklist:
   - "999999999999" # We don't have "production" accounts.
+
+resource-types:
+  excludes:
+    - Budget
