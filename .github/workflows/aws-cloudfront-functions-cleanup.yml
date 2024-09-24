@@ -22,7 +22,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install awscli jq -y
 
-      - name: List and disable all CloudFront distributions
+      - name: List, disable and delete all CloudFront distributions
         run: |
           # List all CloudFront distributions
           distributions=$(aws cloudfront list-distributions --query 'DistributionList.Items[*].Id' --output text)
@@ -56,7 +56,26 @@ jobs:
               sleep 30
             done
 
-            # Delete the disabled distribution
+            # Remove associated resources like aliases, behaviors, and origin groups
+            echo "Removing associated resources from distribution: $distribution_id"
+            # Fetch aliases, behaviors, etc., and remove them
+            aliases=$(echo "$config_json" | jq '.Aliases.Items' | jq -r '.[]')
+            if [ -n "$aliases" ]; then
+              echo "Removing aliases..."
+              updated_config=$(echo "$updated_config" | jq '.Aliases.Quantity = 0 | .Aliases.Items = []')
+            fi
+
+            # Check if distribution is fully disabled with no ongoing invalidations
+            invalidations=$(aws cloudfront list-invalidations --distribution-id $distribution_id --query 'InvalidationList.Items')
+            if [ -n "$invalidations" ]; then
+              echo "Waiting for active invalidations to complete..."
+              sleep 30  # Add a waiting time before deletion if invalidations are present
+            fi
+
+            # Fetch a new ETag before deletion after config changes
+            new_etag=$(aws cloudfront get-distribution-config --id $distribution_id --query 'ETag' --output text)
+
+            # Now attempt to delete the distribution
             echo "Deleting CloudFront distribution: $distribution_id"
-            aws cloudfront delete-distribution --id $distribution_id --if-match "$etag"
+            aws cloudfront delete-distribution --id $distribution_id --if-match "$new_etag"
           done
