@@ -1,24 +1,50 @@
-# Destroys any cloud infrastructure that was deployed for the purpose of E2E testing.
-name: aws-cloudfront-functions-cleanup
+name: Delete All CloudFront Distributions
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
 
 jobs:
-  aws-cloudfront-functions-cleanup:
+  delete-cloudfront-distributions:
     runs-on: ubuntu-latest
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
-      - uses: actions/setup-node@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          node-version: 16
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
 
-      - uses: actions/checkout@v3
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install awscli -y
 
-      - name: Install dependencies
-        run: yarn --immutable
-
-      - name: Run Cloudfront Functions Cleanup
-        run: node ./.github/workflows/cleanup/cleanupCloudfrontFunctions.js
+      - name: List and delete all CloudFront distributions
+        run: |
+          # List all CloudFront distributions
+          distributions=$(aws cloudfront list-distributions --query 'DistributionList.Items[*].Id' --output text)
+          
+          for distribution_id in $distributions; do
+            echo "Disabling CloudFront distribution: $distribution_id"
+            
+            # Fetch the distribution config and ETag
+            config=$(aws cloudfront get-distribution-config --id $distribution_id)
+            etag=$(echo "$config" | jq -r '.ETag')
+            config_json=$(echo "$config" | jq '.DistributionConfig')
+            
+            # Disable the distribution by setting Enabled to false
+            updated_config=$(echo "$config_json" | jq '.Enabled = false')
+            
+            # Update the distribution to disable it
+            aws cloudfront update-distribution \
+              --id $distribution_id \
+              --distribution-config "$updated_config" \
+              --if-match "$etag"
+              
+            # Delete the distribution
+            echo "Deleting CloudFront distribution: $distribution_id"
+            aws cloudfront delete-distribution --id $distribution_id --if-match "$etag"
+          done
