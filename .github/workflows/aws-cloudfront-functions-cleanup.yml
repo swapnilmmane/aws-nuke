@@ -17,16 +17,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Install AWS CLI
+      - name: Install AWS CLI and jq
         run: |
           sudo apt-get update
-          sudo apt-get install awscli -y
+          sudo apt-get install awscli jq -y
 
-      - name: List and delete all CloudFront distributions
+      - name: List and disable all CloudFront distributions
         run: |
           # List all CloudFront distributions
           distributions=$(aws cloudfront list-distributions --query 'DistributionList.Items[*].Id' --output text)
-          
+
           for distribution_id in $distributions; do
             echo "Disabling CloudFront distribution: $distribution_id"
             
@@ -43,8 +43,20 @@ jobs:
               --id $distribution_id \
               --distribution-config "$updated_config" \
               --if-match "$etag"
-              
-            # Delete the distribution
+
+            # Wait for the distribution to be fully disabled and deployed
+            echo "Waiting for distribution to be disabled and deployed..."
+            while true; do
+              status=$(aws cloudfront get-distribution --id $distribution_id --query 'Distribution.Status' --output text)
+              if [ "$status" == "Deployed" ]; then
+                echo "Distribution $distribution_id is now deployed and disabled."
+                break
+              fi
+              echo "Still waiting for deployment... checking again in 30 seconds."
+              sleep 30
+            done
+
+            # Delete the disabled distribution
             echo "Deleting CloudFront distribution: $distribution_id"
             aws cloudfront delete-distribution --id $distribution_id --if-match "$etag"
           done
