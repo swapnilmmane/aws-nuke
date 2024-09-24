@@ -7,7 +7,7 @@ regions:
   - global
 
 accounts:
-  "674320871285":
+  "400803493251":
     filters:
       IAMUser:
         - "FULLACCESS"
